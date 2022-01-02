@@ -66,8 +66,8 @@ pub fn unidecodeAlloc(allocator: Allocator, utf8: []const u8) ![]u8 {
     return buf.toOwnedSlice();
 }
 
-/// Decodes the `utf8` into `dest` and returns the length of
-/// the decoded ASCII.
+/// Transliterates the `utf8` into `dest` and returns the length of
+/// the transliterated ASCII.
 ///
 /// `dest` must be large enough to handle the converted ASCII,
 /// or it will invoke safety-checked illegal behavior (or undefined
@@ -100,7 +100,7 @@ pub fn unidecodeBuf(dest: []u8, utf8: []const u8) !usize {
     return end_index;
 }
 
-/// Decodes a UTF-8 string literal into a unidecoded-ASCII string literal.
+/// Transliterates a UTF-8 string literal into an ASCII-only string literal.
 pub fn unidecodeStringLiteral(comptime utf8: []const u8) *const [calcUnidecodeLen(utf8):0]u8 {
     comptime {
         const len: usize = calcUnidecodeLen(utf8);
@@ -136,36 +136,36 @@ fn getReplacement(codepoint: u21) []const u8 {
     return data[section][index];
 }
 
-fn expectDecoded(expected: []const u8, utf8: []const u8) !void {
-    const decoded = try unidecodeAlloc(testing.allocator, utf8);
-    defer testing.allocator.free(decoded);
+fn expectTransliterated(expected: []const u8, utf8: []const u8) !void {
+    const transliterated = try unidecodeAlloc(testing.allocator, utf8);
+    defer testing.allocator.free(transliterated);
 
-    try testing.expectEqualStrings(expected, decoded);
+    try testing.expectEqualStrings(expected, transliterated);
 }
 
 test "ascii" {
     // all ASCII including control characters should remain unchanged
-    try expectDecoded("\x00\x01\r\n", "\x00\x01\r\n");
-    try expectDecoded("hello!", "hello!");
+    try expectTransliterated("\x00\x01\r\n", "\x00\x01\r\n");
+    try expectTransliterated("hello!", "hello!");
 }
 
 test "transliteration / romanization" {
     // Greek -> unidecode directly
-    try expectDecoded("Taugetos", "Ταΰγετος");
+    try expectTransliterated("Taugetos", "Ταΰγετος");
     // (Greek -> ELOT 743) -> unidecode
-    try expectDecoded("Taygetos", "Taÿ́getos");
+    try expectTransliterated("Taygetos", "Taÿ́getos");
 
     // Cyrillic -> unidecode directly
-    try expectDecoded("Slav'sia, Otechestvo nashe svobodnoe", "Славься, Отечество наше свободное");
+    try expectTransliterated("Slav'sia, Otechestvo nashe svobodnoe", "Славься, Отечество наше свободное");
     // (Cyrillic -> ISO 9) -> unidecode
-    try expectDecoded("Slav'sa, Otecestvo nase svobodnoe", "Slavʹsâ, Otečestvo naše svobodnoe");
+    try expectTransliterated("Slav'sa, Otecestvo nase svobodnoe", "Slavʹsâ, Otečestvo naše svobodnoe");
 }
 
 test "readme examples" {
-    try expectDecoded("yeah", "ÿéáh");
-    try expectDecoded("Bei Jing ", "北亰");
-    try expectDecoded("Slav'sia", "Славься");
-    try expectDecoded("[##  ] 50%", "[██  ] 50%");
+    try expectTransliterated("yeah", "ÿéáh");
+    try expectTransliterated("Bei Jing ", "北亰");
+    try expectTransliterated("Slav'sia", "Славься");
+    try expectTransliterated("[##  ] 50%", "[██  ] 50%");
 }
 
 test "string literals" {
@@ -174,20 +174,20 @@ test "string literals" {
     comptime try testing.expectEqualStrings("Taugetos", unidecoded_literal);
 }
 
-test "decoded is always ASCII" {
+test "output is always ASCII" {
     // for every UTF-8 codepoint within the Basic Multilingual Plane,
-    // check that its decoded form is valid ASCII
+    // check that its transliterated form is valid ASCII
     var buf: [4]u8 = undefined;
-    var decoded_buf: [256]u8 = undefined;
+    var output_buf: [256]u8 = undefined;
     var codepoint: u21 = 0;
     while (codepoint <= 0xFFFF) : (codepoint += 1) {
         if (!std.unicode.utf8ValidCodepoint(codepoint)) {
             continue;
         }
         const num_bytes = try std.unicode.utf8Encode(codepoint, &buf);
-        const decoded_len = try unidecodeBuf(&decoded_buf, buf[0..num_bytes]);
+        const output_len = try unidecodeBuf(&output_buf, buf[0..num_bytes]);
 
-        for (decoded_buf[0..decoded_len]) |c| {
+        for (output_buf[0..output_len]) |c| {
             testing.expect(std.ascii.isASCII(c)) catch |err| {
                 std.debug.print("non-ASCII char {} found when converting codepoint {x} ({s})\n", .{ c, codepoint, &buf });
                 return err;
