@@ -8,12 +8,12 @@ https://metacpan.org/pod/Text::Unidecode
 
 ## Examples
 
-```
-"ÿéáh"			-> "yeah"
-"北亰"			-> "Bei Jing "
-"Славься"		-> "Slav'sia"
-"[██  ] 50%"	-> "[##  ] 50%"
-```
+| UTF-8  | Transliterated ASCII |
+| ------------- | ------------- |
+| `"ÿéáh"`  | `"yeah"`  |
+| `"北亰"`  | `"Bei Jing "` |
+| `"Славься"`  | `"Slav'sia"` |
+| `"[██  ] 50%"`  | `"[##  ] 50%"` |
 
 ## Some things worth noting
 
